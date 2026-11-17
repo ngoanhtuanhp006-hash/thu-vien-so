@@ -4,6 +4,9 @@ import { api, getToken } from "./api";
 import Books from "./pages/Books";
 import Login from "./pages/Login";
 import MyLoans from "./pages/MyLoans";
+import LibrarianLoans from "./pages/LibrarianLoans";
+import LibrarianBooks from "./pages/LibrarianBooks";
+import Stats from "./pages/Stats";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -30,12 +33,21 @@ export default function App() {
     setUser(null);
   }
 
+  const isLibrarian = user && user.role === "librarian";
+
   return (
     <BrowserRouter>
       <nav>
         <b style={{ color: "#fff" }}>Thư viện số Khoa CNTT</b>
         <Link to="/">Tra cứu sách</Link>
-        {user && <Link to="/my-loans">Lịch sử mượn</Link>}
+        {user && !isLibrarian && <Link to="/my-loans">Lịch sử mượn</Link>}
+        {isLibrarian && (
+          <>
+            <Link to="/lib/loans">Giao / nhận sách</Link>
+            <Link to="/lib/books">Quản lý sách</Link>
+            <Link to="/lib/stats">Thống kê</Link>
+          </>
+        )}
         <span className="spacer" />
         {user ? (
           <>
@@ -51,6 +63,9 @@ export default function App() {
           <Route path="/" element={<Books user={user} />} />
           <Route path="/login" element={<Login onLogin={loadUser} />} />
           <Route path="/my-loans" element={<MyLoans />} />
+          <Route path="/lib/loans" element={isLibrarian ? <LibrarianLoans /> : <p>Chỉ dành cho thủ thư.</p>} />
+          <Route path="/lib/books" element={isLibrarian ? <LibrarianBooks /> : <p>Chỉ dành cho thủ thư.</p>} />
+          <Route path="/lib/stats" element={isLibrarian ? <Stats /> : <p>Chỉ dành cho thủ thư.</p>} />
         </Routes>
       </main>
     </BrowserRouter>
