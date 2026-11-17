@@ -1,3 +1,5 @@
+from datetime import date, datetime
+
 from pydantic import BaseModel, EmailStr, ConfigDict
 
 
@@ -77,3 +79,22 @@ class CopyOut(BaseModel):
     book_id: int
     barcode: str
     status: str
+
+
+class LoanIn(BaseModel):
+    book_id: int
+
+
+class LoanOut(BaseModel):
+    id: int
+    user_id: int
+    copy_id: int
+    book_title: str
+    barcode: str
+    status: str
+    requested_at: datetime | date | None
+    borrowed_at: datetime | date | None
+    due_date: datetime | date | None
+    returned_at: datetime | date | None
+    overdue_days: int
+    fine_amount: int
