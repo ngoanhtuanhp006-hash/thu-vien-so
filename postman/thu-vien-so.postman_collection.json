@@ -8,7 +8,7 @@
     {"key": "reader_email", "value": ""},
     {"key": "reader_password", "value": "123456"},
     {"key": "librarian_email", "value": "thuthu@example.com"},
-    {"key": "librarian_password", "value": "123456"},
+    {"key": "librarian_password", "value": "thuthu123"},
     {"key": "reader_token", "value": ""},
     {"key": "librarian_token", "value": ""},
     {"key": "book_id", "value": ""},
