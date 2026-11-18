@@ -1,0 +1,311 @@
+{
+  "info": {
+    "name": "Thu vien so Khoa CNTT",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:8000"},
+    {"key": "reader_email", "value": ""},
+    {"key": "reader_password", "value": "123456"},
+    {"key": "librarian_email", "value": "thuthu@example.com"},
+    {"key": "librarian_password", "value": "thuthu123"},
+    {"key": "reader_token", "value": ""},
+    {"key": "librarian_token", "value": ""},
+    {"key": "book_id", "value": ""},
+    {"key": "loan_id", "value": ""},
+    {"key": "barcode", "value": ""}
+  ],
+  "item": [
+    {
+      "name": "01 Dang ky ban doc moi",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": [
+          "pm.collectionVariables.set('reader_email', 'reader_' + Date.now() + '@test.com');"
+        ]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+          "pm.test('Dang ky thanh cong (200/201)', function () {",
+          "  pm.expect([200, 201]).to.include(pm.response.code);",
+          "});"
+        ]}}
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"email\": \"{{reader_email}}\", \"password\": \"{{reader_password}}\", \"full_name\": \"Postman Reader\"}"},
+        "url": "{{base_url}}/auth/register"
+      }
+    },
+    {
+      "name": "02 Dang nhap ban doc",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('Co access_token', function () {",
+        "  var j = pm.response.json();",
+        "  pm.expect(j.access_token).to.be.a('string');",
+        "  pm.collectionVariables.set('reader_token', j.access_token);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {"mode": "urlencoded", "urlencoded": [
+          {"key": "username", "value": "{{reader_email}}"},
+          {"key": "password", "value": "{{reader_password}}"}
+        ]},
+        "url": "{{base_url}}/auth/login"
+      }
+    },
+    {
+      "name": "03 Dang nhap sai mat khau",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Sai mat khau tra 400/401', function () {",
+        "  pm.expect([400, 401]).to.include(pm.response.code);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {"mode": "urlencoded", "urlencoded": [
+          {"key": "username", "value": "{{reader_email}}"},
+          {"key": "password", "value": "sai-mat-khau"}
+        ]},
+        "url": "{{base_url}}/auth/login"
+      }
+    },
+    {
+      "name": "04 Dang nhap thu thu",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('Luu token thu thu', function () {",
+        "  pm.collectionVariables.set('librarian_token', pm.response.json().access_token);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {"mode": "urlencoded", "urlencoded": [
+          {"key": "username", "value": "{{librarian_email}}"},
+          {"key": "password", "value": "{{librarian_password}}"}
+        ]},
+        "url": "{{base_url}}/auth/login"
+      }
+    },
+    {
+      "name": "05 Xem thong tin ca nhan (/me)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('Vai tro la reader', function () {",
+        "  pm.expect(pm.response.json().role).to.eql('reader');",
+        "});"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{reader_token}}"}],
+        "url": "{{base_url}}/me"
+      }
+    },
+    {
+      "name": "06 /me khong co token -> 401",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Khong token tra 401', function () { pm.response.to.have.status(401); });"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/me"
+      }
+    },
+    {
+      "name": "07 Ban doc tao sach -> 403",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Ban doc khong co quyen tao sach (403)', function () { pm.response.to.have.status(403); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{reader_token}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\"title\": \"Sach khong duoc tao\"}"},
+        "url": "{{base_url}}/books"
+      }
+    },
+    {
+      "name": "08 Thu thu tao dau sach",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Tao sach thanh cong (201)', function () { pm.response.to.have.status(201); });",
+        "pm.test('Luu book_id', function () {",
+        "  var id = pm.response.json().id;",
+        "  pm.expect(id).to.be.a('number');",
+        "  pm.collectionVariables.set('book_id', id);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{librarian_token}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\"title\": \"Postman Book\"}"},
+        "url": "{{base_url}}/books"
+      }
+    },
+    {
+      "name": "09 Thu thu them ban sach (ma vach)",
+      "event": [
+        {"listen": "prerequest", "script": {"type": "text/javascript", "exec": [
+          "pm.collectionVariables.set('barcode', 'PM-' + Date.now());"
+        ]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+          "pm.test('Them ban thanh cong (201)', function () { pm.response.to.have.status(201); });"
+        ]}}
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{librarian_token}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\"book_id\": {{book_id}}, \"barcode\": \"{{barcode}}\"}"},
+        "url": "{{base_url}}/copies"
+      }
+    },
+    {
+      "name": "10 Ma vach trung -> 409",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Ma vach trung tra 409', function () { pm.response.to.have.status(409); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{librarian_token}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\"book_id\": {{book_id}}, \"barcode\": \"{{barcode}}\"}"},
+        "url": "{{base_url}}/copies"
+      }
+    },
+    {
+      "name": "11 Tra cuu sach theo ten",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('Tim thay it nhat 1 sach', function () {",
+        "  pm.expect(pm.response.json().total).to.be.at.least(1);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/books?q=Postman",
+          "host": ["{{base_url}}"],
+          "path": ["books"],
+          "query": [{"key": "q", "value": "Postman"}]
+        }
+      }
+    },
+    {
+      "name": "12 Sach khong ton tai -> 404",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Sach khong ton tai tra 404', function () { pm.response.to.have.status(404); });"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/books/999999"
+      }
+    },
+    {
+      "name": "13 Ban doc dat muon",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Dat muon thanh cong (201)', function () { pm.response.to.have.status(201); });",
+        "pm.test('Trang thai requested', function () {",
+        "  var j = pm.response.json();",
+        "  pm.expect(j.status).to.eql('requested');",
+        "  pm.collectionVariables.set('loan_id', j.id);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{reader_token}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\"book_id\": {{book_id}}}"},
+        "url": "{{base_url}}/loans"
+      }
+    },
+    {
+      "name": "14 Het ban -> 409",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Sach da het ban tra 409', function () { pm.response.to.have.status(409); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Authorization", "value": "Bearer {{reader_token}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\"book_id\": {{book_id}}}"},
+        "url": "{{base_url}}/loans"
+      }
+    },
+    {
+      "name": "15 Ban doc tu giao sach -> 403",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Ban doc khong duoc checkout (403)', function () { pm.response.to.have.status(403); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Authorization", "value": "Bearer {{reader_token}}"}],
+        "url": "{{base_url}}/loans/{{loan_id}}/checkout"
+      }
+    },
+    {
+      "name": "16 Thu thu giao sach",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('Trang thai borrowed va co han tra', function () {",
+        "  var j = pm.response.json();",
+        "  pm.expect(j.status).to.eql('borrowed');",
+        "  pm.expect(j.due_date).to.not.be.null;",
+        "});"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Authorization", "value": "Bearer {{librarian_token}}"}],
+        "url": "{{base_url}}/loans/{{loan_id}}/checkout"
+      }
+    },
+    {
+      "name": "17 Thu thu nhan tra sach",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('Trang thai returned, khong phat', function () {",
+        "  var j = pm.response.json();",
+        "  pm.expect(j.status).to.eql('returned');",
+        "  pm.expect(j.fine_amount).to.eql(0);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Authorization", "value": "Bearer {{librarian_token}}"}],
+        "url": "{{base_url}}/loans/{{loan_id}}/return"
+      }
+    },
+    {
+      "name": "18 Lich su muon cua toi",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('Lich su co it nhat 1 phieu', function () {",
+        "  pm.expect(pm.response.json().length).to.be.at.least(1);",
+        "});"
+      ]}}],
+      "request": {
+        "method": "GET",
+        "header": [{"key": "Authorization", "value": "Bearer {{reader_token}}"}],
+        "url": "{{base_url}}/me/loans"
+      }
+    }
+  ]
+}
